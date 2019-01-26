@@ -44,20 +44,17 @@ class HysCoboler:
 
     __pattern_data_item__        = "^\s*[0-4][0-9]\s+[A-Z]+"
     __pattern_file_description__ = "^FD\s\s$"
-    #__pattern_file_description__ = "^\s*FD\s+[A-Z]+"
     __pattern_block_contains__   = "^\s*BLOCK\s+CONTAINS\s+[0-9]+\s+RECORDS\s*$"
     __pattern_file_value_of__    = "(^\s*VALUE\s+OF)?\s*((AREASIZE\s+|AREAS\s+|SAVEFACTOR\s+)IS\s+[0-9]+|TITLE\s+[A-Z])"
     __pattern_data_01__          = "^01\s\s$"
-    #__pattern_data_item__        = "^\s*[0-4][0-9]\s+[A-Z]\s*(PIC\s+(X?|9?)\s*(\([0-9]*\)|9+)?)?\s*(OCCURS\s+[0-9]+)?"
-    #__pattern_data_item__        = "^\s*[0-4][0-9]\s+[A-Z]\s+(PIC\s+(X|9)\s*(\([0-9]*\))?)?"
-    #__pattern_data_item__        = "^\s*([0-4][0-9])\s+([0-9A-Z-]+)\.?\s+"
     __pattern_data_item_level__  = "^\s*([0-4][0-9])"
     __pattern_data_item_type1__  = "\s+PIC\s+([9X])\s*\([0-9]+\)"
     __pattern_data_item_size1__  = "\s+PIC\s+[9X]\s*\(([0-9]+)\)\."
     __pattern_data_item_size2__  = "\s+PIC\s+(99+|[9-]+[9Z]+)\."
+    __pattern_data_item_size3__  = "\s+PIC\s+[9X]\s*\(([0-9]+)\)"
     __pattern_data_item_name__   = "\s+([0-9A-Z-]+)\.?\s+"
+    __pattern_data_item_occurs__  = "\s+OCCURS +([0-9]+).*\."
     __pattern_data_item_pic__    = "\s+PIC\s+\(([0-9]+)\)\s+"
-    #__pattern_data_name__        = "^\s*([0-4][0-9])"
 
     def __init__(self, cobol):
         self.cobol = cobol 
@@ -91,15 +88,25 @@ class HysCoboler:
             return self.__procedure_division__ 
 
     def simple_layout(self, html_file="layout.html", css_file="layout.css"):
-        html_main = ""
+        i = 0
+        j = 0
+        #html_main = ""
+        html_resv = ""
         html_scal = ""
         data_level = 0
-        item_size_sum = 0
+        parent_level = 0
+        occurs_flag = False
         div_id = 0
         div_part = 0
+        html_main = [[]] 
+        html_values = {}
+        el_class = 0
+        el_size = 0 
+        el_name = ""
+        el_size_sum = 0
         with open(css_file, 'w') as css:
             css.write("body{font-family:monospace;}\n")
-            css.write(".cls1{display:flex;width:max-content;border-top:solid thin;border-bottom:solid thin;word-wrap:break-word;}\n")
+            css.write(".cls1{display:flex;width:max-content;border-top:solid thin;border-bottom:solid thin;word-wrap:break-word;margin-top:10px;}\n")
             css.write(".cls2{text-align:center;border-left:solid thin;}\n")
             css.write(".cls3{display:inline-block;border-left:solid thin;text-align:center;width:9px;}\n")
             with open(html_file, 'w') as html:
@@ -119,76 +126,81 @@ class HysCoboler:
                             if self.parse(self.__pattern_file_value_of__, rgnb):
                                 html.write(rgnb + "<br />")
                             if self.parse(self.__pattern_data_01__, rgna):
-                                html.write("<div>" + rgnb + "</div>")
-                                html_main = "<div class='cls1'>"
-                                html_scal = "<div>"
+                                html.write("<div>" + rgnb + "</div>\n")
+                                #html_scal = "<div>\n"
                                 data_level = 1
+                            el_class = 2
                             match = self.parseII(self.__pattern_data_item_level__, rgnb)
                             if match:
+                                data_level = int(match.group(1))
+                                if occurs_flag:
+                                    if data_level <= parent_level:
+                                        i = 0
+                                        while i < repeat:
+                                            for item in html_resv:
+                                                html_main.append(item)
+                                            i+=1
+                                        occurs_flag = False 
+                                else:
+                                    html_resv = [[]]
                                 match2 = self.parseII(self.__pattern_data_item_name__, rgnb.lstrip()[2:])
                                 if match2:
-                                    item_name = match2.group(1)
+                                    el_name = match2.group(1)
+                                    match5 = self.parseII(self.__pattern_data_item_occurs__, rgnb)
+                                    if match5:      #OCCURS
+                                        occurs_flag = True
+                                        parent_level = int(match.group(1))
+                                        repeat = int(match5.group(1)) - 1
+                                        match6 = self.parseII(self.__pattern_data_item_size3__, rgnb)
+                                        if match6:
+                                            el_size = int(match6.group(1))
+                                            item_type = self.parseII(self.__pattern_data_item_type1__, rgnb).group(1)
+                                            i = 0
+                                            while i < repeat+1:
+                                                html_main.append([el_class, el_size, el_name])
+                                                i+=1
+                                            html_scal += (("<div class='cls3'>" + item_type + "</div>")*el_size)*(repeat+1)
+                                            occurs_flag = False
+                                            continue
                                     match3 = self.parseII(self.__pattern_data_item_size1__, rgnb)
                                     if match3:
-                                        div_id += 1
-                                        item_size = int(match3.group(1))
+                                        el_size = int(match3.group(1))
                                         item_type = self.parseII(self.__pattern_data_item_type1__, rgnb).group(1)
-                                        if item_size_sum + item_size > 100:
-                                            div_part += 1 
-                                            item_size = 100 - item_size_sum
-                                            html_main += "<div class='cls2 id" + str(div_id) + "-" + str(div_part) + "'>" + item_name + "</div></div>"
-                                            css.write(".id" + str(div_id) + "-" + str(div_part) + "{width:" + str(item_size*10 - 1) + "px;}\n")
-                                            html_scal += ("<div class='cls3'>" + item_type + "</div>")*item_size + "</div>"
-                                            html.write(html_main)
-                                            html.write(html_scal)
-                                            #
-                                            div_part += 1 
-                                            item_size = int(match3.group(1)) - item_size
-                                            html_main = "<div class='cls1' style='margin-top:10px;'>"
-                                            html_scal = "<div>"
-                                            html_main += "<div class='cls2 id" + str(div_id) + "-" + str(div_part) + "'>" + item_name + "</div>"
-                                            css.write(".id" + str(div_id) + "-" + str(div_part) + "{width:" + str(item_size*10 - 1) + "px;}\n")
-                                            html_scal += ("<div class='cls3'>" + item_type + "</div>")*item_size
-                                            item_size_sum = item_size 
-                                        else:
-                                            html_main += "<div class='cls2 id" + str(div_id) + "'>" + item_name + "</div>"
-                                            css.write(".id" + str(div_id) + "{width:" + str(item_size*10 - 1) + "px;}\n")
-                                            html_scal += ("<div class='cls3'>" + item_type + "</div>")*item_size
-                                            item_size_sum+=item_size
-                                        div_part = 0
+                                        html_main.append([el_class, el_size, el_name])
+                                        html_resv.append([el_class, el_size, el_name])
+                                        html_scal += ("<div class='cls3'>" + item_type + "</div>")*el_size
                                         continue
                                     match4 = self.parseII(self.__pattern_data_item_size2__, rgnb)
                                     if match4:
-                                        div_id += 1
-                                        item_size = len(match4.group(1))
-                                        if item_size_sum + item_size > 100:
-                                            item_size = 100 - item_size_sum
-                                            html_main += "<div class='cls2 id" + str(div_id) + "-" + str(div_part) + "'>" + item_name + "</div></div>"
-                                            css.write(".id" + str(div_id) + "-" + str(div_part) + "{width:" + str(item_size*10 - 1) + "px;}\n")
-                                            for char in match4.group(1):
-                                                html_scal += "<div class='cls3'>" + char + "</div>"
-                                            html_scal += "</div>"
-                                            #
-                                            html.write(html_main)
-                                            html.write(html_scal)
-                                            html_main = "<div class='cls1' style='margin-top:10px;'>"
-                                            html_scal = "<div>"
-                                            div_part += 1 
-                                            item_size = len(match4.group(1)) - item_size
-                                            html_main += "<div class='cls2 id" + str(div_id) + "-" + str(div_part) + "'>" + item_name + "</div></div>"
-                                            css.write(".id" + str(div_id) + "-" + str(div_part) + "{width:" + str(item_size*10 - 1) + "px;}\n")
-                                            for char in match4.group(1):
-                                                html_scal += "<div class='cls3'>" + char + "</div>"
-                                            item_size_sum = item_size 
-                                        else:
-                                            html_main += "<div class='cls2 id" + str(div_id) + "'>" + item_name + "</div>"
-                                            css.write(".id" + str(div_id) + "{width:" + str(item_size*10 - 1) + "px;}\n")
-                                            for char in match4.group(1):
-                                                html_scal += "<div class='cls3'>" + char + "</div>"
-                                            item_size_sum+=item_size
-                                        div_part = 0
+                                        el_size = len(match4.group(1))
+                                        html_main.append([el_class, el_size, el_name])
+                                        html_resv.append([el_class, el_size, el_name])
+                                        for char in match4.group(1):
+                                            html_scal += "<div class='cls3'>" + char + "</div>"
                                         continue
-                html.write(html_main + "</div>" + html_scal + "</div>")
+                html.write("<div class='cls1'>\n")
+                for item in html_main:
+                    if item:
+                        while True:
+                            if item[1] + el_size_sum > 100:
+                                el_size_right = 100 - el_size_sum
+                                el_size_left  = item[1] - el_size_right
+                                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(el_size_right*10-1) + "px;'>" + item[2] + "</div>\n")
+                                html.write("</div>\n")
+                                html.write("<div class='cls1'>\n")
+                                el_size_sum = 0
+                                item[1]  = item[1] - el_size_right
+                            elif item[1] + el_size_sum == 100:
+                                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(item[1]*10) + "px;'>" + item[2] + "</div>\n")
+                                html.write("</div>\n")
+                                html.write("<div class='cls1'>\n")
+                                el_size_sum = 0
+                                break
+                            else:
+                                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(item[1]*10-1) + "px;'>" + item[2] + "</div>\n")
+                                el_size_sum += item[1]
+                                break
+                html.write("</div>\n")
                                 
     def format(self, indent_level=1, out_file="format.cbl"):
         indent = 0
