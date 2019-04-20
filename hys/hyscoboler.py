@@ -51,7 +51,7 @@ class HysCoboler:
     __pattern_data_item_type1__  = "\s+PIC\s+([9X])\s*\([0-9]+\)"
     __pattern_data_item_size1__  = "\s+PIC\s+[9X]\s*\(([0-9]+)\)\."
     __pattern_data_item_size2__  = "\s+PIC\s+(99+|[9-]+[9Z]+)\."
-    __pattern_data_item_size3__  = "\s+PIC\s+[9X]\s*\(([0-9]+)\)"
+    __pattern_data_item_size3__  = "\s+PIC\s+[9X]\s*\(([0-9]+)\)\s+OCCURS\s+[0-9]+\."
     __pattern_data_item_name__   = "\s+([0-9A-Z-]+)\.?\s+"
     __pattern_data_item_occurs__  = "\s+OCCURS +([0-9]+).*\."
     __pattern_data_item_pic__    = "\s+PIC\s+\(([0-9]+)\)\s+"
@@ -94,7 +94,10 @@ class HysCoboler:
         html_resv = ""
         html_scal = ""
         data_level = 0
+        #repeat = []
+        repeat = 0 
         parent_level = 0
+        #parent_level = [] 
         occurs_flag = False
         div_id = 0
         div_part = 0
@@ -128,21 +131,26 @@ class HysCoboler:
                             if self.parse(self.__pattern_data_01__, rgna):
                                 html.write("<div>" + rgnb + "</div>\n")
                                 #html_scal = "<div>\n"
-                                data_level = 1
+                                el_level = 1
                             el_class = 2
+                            el_level = 0
+                            el_size  = 0
                             match = self.parseII(self.__pattern_data_item_level__, rgnb)
                             if match:
-                                data_level = int(match.group(1))
-                                if occurs_flag:
-                                    if data_level <= parent_level:
-                                        i = 0
-                                        while i < repeat:
-                                            for item in html_resv:
-                                                html_main.append(item)
-                                            i+=1
-                                        occurs_flag = False 
-                                else:
-                                    html_resv = [[]]
+                                el_level = int(match.group(1))
+                                #{{{
+                                #if occurs_flag:
+                                #    if data_level <= parent_level[0]:
+                                #        i = 0
+                                #        while i < repeat:
+                                #            for item in html_resv:
+                                #            #fot item in reversed(html_resv):
+                                #                html_main.append(item)
+                                #            i+=1
+                                #        occurs_flag = False 
+                                #else:
+                                #    html_resv = [[]]
+                                #}}}
                                 match2 = self.parseII(self.__pattern_data_item_name__, rgnb.lstrip()[2:])
                                 if match2:
                                     el_name = match2.group(1)
@@ -150,56 +158,78 @@ class HysCoboler:
                                     if match5:      #OCCURS
                                         occurs_flag = True
                                         parent_level = int(match.group(1))
-                                        repeat = int(match5.group(1)) - 1
-                                        match6 = self.parseII(self.__pattern_data_item_size3__, rgnb)
-                                        if match6:
-                                            el_size = int(match6.group(1))
-                                            item_type = self.parseII(self.__pattern_data_item_type1__, rgnb).group(1)
-                                            i = 0
-                                            while i < repeat+1:
-                                                html_main.append([el_class, el_size, el_name])
-                                                i+=1
-                                            html_scal += (("<div class='cls3'>" + item_type + "</div>")*el_size)*(repeat+1)
-                                            occurs_flag = False
-                                            continue
+                                        #parent_level.append(int(match.group(1)))
+                                        repeat = int(match5.group(1))
+                                        html_main.append([1, 0, el_name, el_level, repeat])
+                                        repeat = 0
+                                    match6 = self.parseII(self.__pattern_data_item_size3__, rgnb)
+                                    if match6:
+                                        el_size = int(match6.group(1))
+                                        html_main.append([el_class, el_size, el_name, el_level, repeat])
+                                        #i = 0
+                                        item_type = self.parseII(self.__pattern_data_item_type1__, rgnb).group(1)
+                                        #while i < repeat+1:
+                                        #    html_main.append([el_class, el_size, el_name, el_level, parent_level, repeat])
+                                            #html_main.append([el_class, el_size, el_name])
+                                        #    i+=1
+                                        html_scal += (("<div class='cls3'>" + item_type + "</div>")*el_size)*(repeat+1)
+                                        occurs_flag = False
+                                        continue
                                     match3 = self.parseII(self.__pattern_data_item_size1__, rgnb)
                                     if match3:
                                         el_size = int(match3.group(1))
                                         item_type = self.parseII(self.__pattern_data_item_type1__, rgnb).group(1)
-                                        html_main.append([el_class, el_size, el_name])
-                                        html_resv.append([el_class, el_size, el_name])
+                                        html_main.append([el_class, el_size, el_name, el_level, repeat])
+                                        #html_main.append([el_class, el_size, el_name])
+                                        #html_resv.append([el_class, el_size, el_name, el_level])
                                         html_scal += ("<div class='cls3'>" + item_type + "</div>")*el_size
                                         continue
                                     match4 = self.parseII(self.__pattern_data_item_size2__, rgnb)
                                     if match4:
                                         el_size = len(match4.group(1))
-                                        html_main.append([el_class, el_size, el_name])
-                                        html_resv.append([el_class, el_size, el_name])
+                                        html_main.append([el_class, el_size, el_name, el_level, repeat])
+                                        #html_main.append([el_class, el_size, el_name])
+                                        #html_resv.append([el_class, el_size, el_name])
                                         for char in match4.group(1):
                                             html_scal += "<div class='cls3'>" + char + "</div>"
                                         continue
-                html.write("<div class='cls1'>\n")
+
+                repeat_arr = [[99,99]]
                 for item in html_main:
                     if item:
-                        while True:
-                            if item[1] + el_size_sum > 100:
-                                el_size_right = 100 - el_size_sum
-                                el_size_left  = item[1] - el_size_right
-                                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(el_size_right*10-1) + "px;'>" + item[2] + "</div>\n")
-                                html.write("</div>\n")
-                                html.write("<div class='cls1'>\n")
-                                el_size_sum = 0
-                                item[1]  = item[1] - el_size_right
-                            elif item[1] + el_size_sum == 100:
-                                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(item[1]*10) + "px;'>" + item[2] + "</div>\n")
-                                html.write("</div>\n")
-                                html.write("<div class='cls1'>\n")
-                                el_size_sum = 0
-                                break
-                            else:
-                                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(item[1]*10-1) + "px;'>" + item[2] + "</div>\n")
-                                el_size_sum += item[1]
-                                break
+                        if item[4]:
+                            repeat_arr.append([item[3], item[4]])
+                            continue
+                        if item[3] =< repeat_arr[-1][0]:
+                            html_sub.
+                        else:
+                            html_sub.append(item)
+                            tmp.append(item)
+
+                #html.write("<div class='cls1'>\n")
+                #for item in html_main:
+                #    print(item)
+                    #if item:
+                    #    if item[1] > 0:
+                    #        while True:
+                    #            if item[1] + el_size_sum > 100:
+                    #                el_size_right = 100 - el_size_sum
+                    #                el_size_left  = item[1] - el_size_right
+                    #                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(el_size_right*10-1) + "px;'>" + item[2] + "</div>\n")
+                    #                html.write("</div>\n")
+                    #                html.write("<div class='cls1'>\n")
+                    #                el_size_sum = 0
+                    #                item[1]  = item[1] - el_size_right
+                    #            elif item[1] + el_size_sum == 100:
+                    #                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(item[1]*10) + "px;'>" + item[2] + "</div>\n")
+                    #                html.write("</div>\n")
+                    #                html.write("<div class='cls1'>\n")
+                    #                el_size_sum = 0
+                    #                break
+                    #            else:
+                    #                html.write("<div " + "class='cls" + str(item[0]) + "' style='width:" + str(item[1]*10-1) + "px;'>" + item[2] + "</div>\n")
+                    #                el_size_sum += item[1]
+                    #                break
                 html.write("</div>\n")
                                 
     def format(self, indent_level=1, out_file="format.cbl"):
