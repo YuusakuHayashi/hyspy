@@ -20,7 +20,7 @@ class HysFiler:
                 line_cnt += 1
             inf.close()
 
-    def read_cfg(self):
+    def read_user_cfg(self):
         with open(self.file, 'r') as inf:
             ln = 0
             dic = {}
@@ -34,6 +34,7 @@ class HysFiler:
                     dic["pass"] = line.strip("\n")
                     break
             return dic
+    
 
     #def __del__(self):
     #    self.file.close()
