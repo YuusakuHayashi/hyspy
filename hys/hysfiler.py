@@ -7,18 +7,19 @@ def writeHtmlHeader(CONF_FILE):
 class HysFiler:
     def __init__(self, my_file, open_type='utf-8'):
         self.type = open_type
-        #self.file = open(my_file, encoding=self.type)
-        self.file = my_file
+        self.file = open(my_file, encoding=self.type)
+        #self.file = my_file
 
-    def copy_file(self, reigion, out_file="copy"):
+    #def copy_file(self, reigion, out_file="copy"):
+    def copy_file(self,out_file="copy"):
         inf = self.file
         with open(out_file, 'w') as otf: 
             line_cnt = 1
             for line in inf:
-                if line_cnt >= reigion[0] and line_cnt <= reigion[1]:
-                    otf.write(line)
-                line_cnt += 1
-            inf.close()
+                otf.write(line)
+                #if line_cnt >= reigion[0] and line_cnt <= reigion[1]:
+                #    otf.write(line)
+                #line_cnt += 1
 
     def read_user_cfg(self):
         with open(self.file, 'r') as inf:
@@ -36,5 +37,5 @@ class HysFiler:
             return dic
     
 
-    #def __del__(self):
-    #    self.file.close()
+    def __del__(self):
+        self.file.close()
