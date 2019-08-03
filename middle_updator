@@ -2,8 +2,8 @@
 
 
 # Author hys
+
 rd=/d/dev
-majvf=major_version
 midvf=middle_version
 if [ -p /dev/stdin ]; then
 	fn=$( </dev/stdin )
@@ -16,8 +16,9 @@ fi
 
 git add .;
 git status;
-read -p "commit ok? (y/n):" yn </dev/tty
 
+read -p "commit ok? (y/n):" yn </dev/tty
+majvf=major_version
 case $yn in
 	y) 
 		majv=$(cat ${majvf}) 
