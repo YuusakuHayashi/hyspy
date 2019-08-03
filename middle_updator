@@ -1,0 +1,28 @@
+#!/bin/bash
+
+
+# Author hys
+rd=/d/dev
+majvf=major_version
+midvf=middle_version
+if [ -p /dev/stdin ]; then
+	fn=$( </dev/stdin )
+	yyyymmdd=$(date "+%Y%m%d")
+	cat $fn > "${yyyymmdd}_${fn}"
+	echo ${yyyymmdd} > $midvf
+else
+	exit	
+fi
+
+git add .;
+git status;
+read -p "commit ok? (y/n):" yn </dev/tty
+
+case $yn in
+	y) 
+		majv=$(cat ${majvf}) 
+		git add .;
+		git commit -m"${majv}.${yyyymmdd}.${yyyymmdd}";
+		;;
+	*) 
+esac
