@@ -2,9 +2,30 @@
 
 
 # Author hys
+rd=/d/dev
+md=module
+if [ -p /dev/stdin ]; then
+	pd=$( </dev/stdin )
+	if [[ -e "${rd}/${pd}" ]]; then
+		md="${rd}/${pd}/${md}" 
+		mkdir ${md} 
+		for f in $(find . -maxdepth 1 -type f); do
+			if [[ ${f:2} != "./.gitignore" ]]; then
+				#cat $f > "${rd}/${pd}/${md}/${f:2}"
+				cat $f > "${md}/${f:2}"
+			fi
+		done
+	else
+		exit
+	fi
+else
+	exit	
+fi
+
 git add .;
 git status;
-read -p "commit ok? (y/n):" yn
+read -p "commit ok? (y/n):" yn </dev/tty
+
 case $yn in
 	y) 
 		yyyymmdd=$(date "+%Y%m%d")
