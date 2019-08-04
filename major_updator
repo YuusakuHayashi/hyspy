@@ -2,54 +2,113 @@
 
 
 # Author hys
+yyyymmdd=$(date "+%Y%m%d")
 rd=/d/dev
 dd="${rd}/dev"
 
 # stdin check
-if [ -p !/dev/stdin ]; then
+if [ -p /dev/stdin ]; then
+	echo "stdin ok"
+else
 	echo "no stdin"
 	exit
 fi
 pd=$( </dev/stdin )
-if [[ -e !"${rd}/${pd}" ]]; then
+if [[ -d "${rd}/${pd}" ]]; then
+	echo "project directory ok"
+else
 	echo "invalid project directory"
 	exit
 fi
 
-# module directory check & mkdir
-md="${rd}/${pd}/module" 
-if [[ -e $md ]]; then
-	echo "${md} is already exist"
-	read -p "${md} update ok? (y/n):" yn </dev/tty
-	if [[ $yn != y ]]; then
-		exit
-	fi
-else
-	mkdir ${md} 
-fi
-for f in $(find . -maxdepth 1 -type f); do
-	if [[ ${f:2} != "./.gitignore" ]]; then
-		cat $f > "${md}/${f:2}"
-	fi
-done
-
 # revision directory check & mkdir
-yyyymmdd=$(date "+%Y%m%d")
-if [[ -e $yyyymmdd ]]; then
-	echo "${yyyymmdd} is already exist"
-	read -p "${yyyymmdd} update ok? (y/n):" yn </dev/tty
-	if [[ $yn != y ]]; then
-		exit
-	fi
+#if [[ -e $yyyymmdd ]]; then
+#	echo "${yyyymmdd} is already exist"
+#	read -p "${yyyymmdd} update ok? (y/n):" yn </dev/tty
+#	if [[ $yn != y ]]; then
+#		exit
+#	fi
+#else
+#	mkdir $yyyymmdd 
+#fi
+if [[ -d $yyyymmdd ]]; then
+	echo "directory ${yyyymmdd} is already exist"
+	exit
 else
 	mkdir $yyyymmdd 
 fi
+
+pf="project_name"
+if [[ -f $pf ]]; then
+	echo "$pf is exist"
+else
+	touch $pf
+	echo $pd > $pf
+fi
+echo "clone modules -> ${dd}/${yyyymmdd}"
 for f in $(find . -maxdepth 1 -type f); do
 	if [[ $f != "./.gitignore" ]]; then
-		cat $f > "${yyyymmdd}/${f}"
+		cat $f > "${yyyymmdd}/${f:2}"
 	fi
 done
 
+# module directory check & mkdir
+md="${rd}/${pd}/module" 
+if [[ -e ${md} ]]; then
+	echo "module directory exist"
+	exit
+else	
+	mkdir ${md} 
+fi
+#md="${rd}/${pd}/module" 
+#if [[ -e $md ]]; then
+#	echo "${md} is already exist"
+#	read -p "${md} update ok? (y/n):" yn </dev/tty
+#	if [[ $yn != y ]]; then
+#		exit
+#	fi
+#else
+#	mkdir ${md} 
+#fi
+mvd="${rd}/${pd}/module/${yyyymmdd}" 
+if [[ -e $mvd ]]; then
+	echo "${mvd} is already exist"
+	exit
+	#read -p "${mvd} update ok? (y/n):" yn </dev/tty
+	#if [[ $yn != y ]]; then
+	#	exit
+	#fi
+else
+	mkdir ${mvd} 
+fi
+echo "clone modules -> ${mvd}"
+for f in $(find . -maxdepth 1 -type f); do
+	if [[ ${f:2} != "./.gitignore" ]]; then
+		cat $f > "${mvd}/${f:2}"
+	fi
+done
+
+# make modules list
+#tmp=tmp
+#list="${yyyymmdd}_${yyyymmdd}_${yyyymmdd}"
+#if [[ -e $list ]]; then
+#	echo "${list} is already exist"
+#	read -p "${list} update ok? (y/n):" yn </dev/tty
+#	if [[ $yn != y ]]; then
+#		exit
+#	fi
+#	if [[ -e $tmp ]]; then
+#		rm $tmp
+#	fi
+#	touch $tmp
+#fi
+#for f in $(find . -maxdepth 1 -type f); do
+#	echo ${f:2} >> $tmp 
+#done
+
+
+
+# git add & commit
 git add .;
 git status;
 read -p "commit ok? (y/n):" yn </dev/tty

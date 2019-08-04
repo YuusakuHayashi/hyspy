@@ -4,15 +4,73 @@
 # Author hys
 
 rd=/d/dev
+dd="${rd}/dev"
 midvf=middle_version
+yyyymmdd=$(date "+%Y%m%d")
+
+# stdin check
 if [ -p /dev/stdin ]; then
-	fn=$( </dev/stdin )
-	yyyymmdd=$(date "+%Y%m%d")
-	cat $fn > "${yyyymmdd}_${fn}"
-	echo ${yyyymmdd} > $midvf
+	echo "stdin ok"	
+	#cat $fn > ""
+	#echo ${yyyymmdd} > $midvf
 else
+	echo "no stdin"
 	exit	
 fi
+inp=$( </dev/stdin )
+IFS=" "
+set -- $inp
+if [[ -d "${dd}/${1}" ]]; then
+	echo " ${dd}/${1} ok"
+else
+	echo "invalid directory" 
+	exit
+fi
+if [[ -f "${dd}/${2}" ]]; then
+	echo "${2} ok"
+else
+	echo "${2} is not exist"
+	exit
+fi
+
+if [[ -d "${dd}/${1}/${yyyymmdd}" ]]; then
+	echo "${dd}/${1}/${yyyymmdd} is exist"
+	exit
+else
+	echo "${dd}/${1}/${yyyymmdd} ok"
+	#mkdir "${dd}/${1}/${yyyymmdd}"
+fi
+
+pf="project_name"
+if [[ -f "${dd}/${1}/${pf}" ]]; then
+	echo "${dd}/${1}/${pf} ok"
+else
+	echo "hoge"
+	echo "${dd}/${1}/${pf} is not exist"
+	exit
+fi
+
+pd=$( cat "${dd}/${1}/${pf}" )
+md="${rd}/${pd}/module/${1}"
+echo $md
+if [[ -d $md ]]; then
+	echo "${md} ok"
+else
+	echo "${md} is not exist"
+	exit
+fi
+if [[ -d "$md/${yyyymmdd}" ]]; then
+	echo "$md/${yyyymmdd} is already exist"
+	exit
+else
+	mkdir "$md/${yyyymmdd}" 
+fi
+
+mkdir "${dd}/${1}/${yyyymmdd}"
+echo "clone modules -> ${dd}/${1}/${yyyymmdd}"
+cat ${2} > "${dd}/${1}/${yyyymmdd}/${2}"
+echo "clone modules -> ${md}/${yyyymmdd}"
+cat ${2} > "${md}/${yyyymmdd}/${2}"
 
 git add .;
 git status;
